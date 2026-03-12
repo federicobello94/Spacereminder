@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPACE REMIND</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:#0ff;font-family:'VT323',monospace;min-height:100vh;overflow-x:hidden;position:relative}
+#stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+@keyframes twinkle{0%{opacity:.3}100%{opacity:1}}
+.planet-wrap{position:fixed;top:10%;right:5%;z-index:0;pointer-events:none}
+.planet{width:80px;height:80px;background:radial-gradient(circle at 35% 35%,#b06,#604);border-radius:50%;box-shadow:0 0 30px #b06a;position:relative}
+.planet::after{content:'';position:absolute;top:35px;left:-20px;width:120px;height:20px;border:3px solid #ff6bc155;border-radius:50%;transform:rotate(-15deg)}
+#sync-status{position:fixed;top:8px;right:8px;z-index:100;font-size:13px;padding:4px 8px;border-radius:4px;font-family:'VT323',monospace}
+.syncing{background:#0ff2;color:#0ff;border:1px solid #0ff4}
+.synced{background:#0f02;color:#0f0;border:1px solid #0f04}
+.sync-err{background:#f002;color:#f00;border:1px solid #f004}
+header{position:relative;z-index:10;text-align:center;padding:20px 10px 10px;border-bottom:2px solid #0ff3}
+.logo-title{font-family:'Press Start 2P',monospace;font-size:20px;color:#0ff;text-shadow:0 0 20px #0ff;letter-spacing:4px}
+.logo-sub{display:block;font-size:16px;color:#0ff8;letter-spacing:6px;margin-top:4px}
+.tabs{position:relative;z-index:10;display:flex;gap:4px;padding:10px;background:#000;border-bottom:2px solid #0ff3;overflow-x:auto}
+.tab-btn{flex:1;padding:10px 6px;background:#0ff1;border:2px solid #0ff4;color:#0ff;font-family:'VT323',monospace;font-size:18px;cursor:pointer;transition:.2s;white-space:nowrap;position:relative}
+.tab-btn:hover{background:#0ff2}
+.tab-btn.films{border-color:#f0f4;color:#f0f}
+.tab-btn.films.active,.tab-btn.films:hover{background:#f0f2;border-color:#f0f}
+.tab-btn.games{border-color:#0f04;color:#0f0}
+.tab-btn.games.active,.tab-btn.games:hover{background:#0f02;border-color:#0f0}
+.tab-btn.work{border-color:#fa04;color:#fa0}
+.tab-btn.work.active,.tab-btn.work:hover{background:#fa02;border-color:#fa0}
+.tab-btn.general.active{background:#0ff2;border-color:#0ff}
+.count-badge{position:absolute;top:4px;right:4px;background:#f00;color:#fff;font-size:11px;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-family:'VT323',monospace}
+.panel{display:none;position:relative;z-index:10;padding:10px;min-height:60vh}
+.panel.active{display:block}
+.panel-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:22px}
+.panel-general .panel-header{color:#0ff}
+.panel-films .panel-header{color:#f0f}
+.panel-games .panel-header{color:#0f0}
+.panel-work .panel-header{color:#fa0}
+.toggle-form-btn{background:transparent;border:2px solid currentColor;color:inherit;font-family:'VT323',monospace;font-size:20px;padding:8px 16px;cursor:pointer;width:100%;margin-bottom:10px;opacity:.7}
+.toggle-form-btn:hover{opacity:1}
+.panel-general .toggle-form-btn{color:#0ff}
+.panel-films .toggle-form-btn{color:#f0f}
+.panel-games .toggle-form-btn{color:#0f0}
+.panel-work .toggle-form-btn{color:#fa0}
+.add-form{display:none;background:#0ff0a;border:1px solid #0ff4;padding:12px;margin-bottom:14px;flex-direction:column;gap:8px}
+.panel-films .add-form{background:#f0f0a;border-color:#f0f4}
+.panel-games .add-form{background:#0f00a;border-color:#0f04}
+.panel-work .add-form{background:#fa00a;border-color:#fa04}
+.add-form.open{display:flex}
+.add-form input,.add-form textarea{background:#000;border:1px solid #0ff5;color:#0ff;font-family:'VT323',monospace;font-size:18px;padding:8px;width:100%}
+.panel-films .add-form input,.panel-films .add-form textarea{border-color:#f0f5;color:#f0f}
+.panel-games .add-form input,.panel-games .add-form textarea{border-color:#0f05;color:#0f0}
+.panel-work .add-form input,.panel-work .add-form textarea{border-color:#fa05;color:#fa0}
+.add-btn{background:transparent;border:2px solid currentColor;color:inherit;font-family:'VT323',monospace;font-size:20px;padding:8px;cursor:pointer;width:100%}
+.panel-general .add-btn{color:#0ff}
+.panel-films .add-btn{color:#f0f}
+.panel-games .add-btn{color:#0f0}
+.panel-work .add-btn{color:#fa0}
+.item{border:1px solid #0ff3;padding:10px;margin-bottom:8px;position:relative;cursor:pointer;transition:.15s}
+.item:hover{border-color:#0ff8}
+.panel-films .item{border-color:#f0f3}
+.panel-films .item:hover{border-color:#f0f8}
+.panel-games .item{border-color:#0f03}
+.panel-games .item:hover{border-color:#0f08}
+.panel-work .item{border-color:#fa03}
+.panel-work .item:hover{border-color:#fa08}
+.item.done{opacity:.4}
+.item-title{font-size:26px;padding-right:60px;line-height:1.2}
+.item-note{font-size:19px;opacity:.7;margin-top:4px}
+.item-date{font-size:18px;margin-top:4px}
+.item-date.today{color:#ff0;animation:blink 1s infinite}
+.item-date.soon{color:#fa0;animation:pulse 1.5s infinite}
+.item-date.past{color:#f44}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.item-actions{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:10}
+.btn-done,.btn-del{background:transparent;border:none;cursor:pointer;font-size:20px;opacity:.8}
+.btn-done:hover,.btn-del:hover{opacity:1}
+.empty{text-align:center;padding:40px;font-size:20px;opacity:.4;line-height:2}
+.empty-icon{font-size:40px;display:block;margin-bottom:8px}
+.edit-form{display:none;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #0ff3}
+.edit-form.open{display:flex}
+.edit-form input,.edit-form textarea{background:#000;border:1px solid #0ff5;color:#0ff;font-family:'VT323',monospace;font-size:18px;padding:6px;width:100%}
+.edit-save{background:transparent;border:1px solid #0ff;color:#0ff;font-family:'VT323',monospace;font-size:18px;padding:6px;cursor:pointer;width:100%}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="planet-wrap"><div class="planet"></div></div>
+<div id="sync-status" class="syncing">&#8987; SYNC...</div>
+
+<header>
+  <span class="logo-title">&#10022; SPACE REMIND &#10022;</span>
+  <span class="logo-sub">:: MISSION CONTROL ::</span>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn general active" onclick="switchTab('general')">&#9889; NOTE<span class="count-badge" id="badge-general"></span></button>
+  <button class="tab-btn films" onclick="switchTab('films')">&#127916; FILM &amp; SERIE<span class="count-badge" id="badge-films"></span></button>
+  <button class="tab-btn games" onclick="switchTab('games')">&#127918; GIOCHI<span class="count-badge" id="badge-games"></span></button>
+  <button class="tab-btn work" onclick="switchTab('work')">&#128188; LAVORO<span class="count-badge" id="badge-work"></span></button>
+</div>
+
+<div class="panel panel-general active" id="panel-general">
+  <div class="panel-header"><span>&#9889;</span><h2>Promemoria Generali</h2></div>
+  <button class="toggle-form-btn" onclick="toggleForm('general')">+ INSERISCI PROMEMORIA</button>
+  <div class="add-form" id="form-general">
+    <input type="text" id="title-general" placeholder="Titolo promemoria..." maxlength="80">
+    <textarea id="note-general" rows="2" placeholder="Note (opzionale)..."></textarea>
+    <input type="date" id="date-general">
+    <button class="add-btn" onclick="addItem('general')">&#9658; AGGIUNGI</button>
+  </div>
+  <div class="items-list" id="list-general"></div>
+  <div class="empty" id="empty-general"><span class="empty-icon">&#128760;</span>NESSUN PROMEMORIA<br>NELL'UNIVERSO...</div>
+</div>
+
+<div class="panel panel-films" id="panel-films">
+  <div class="panel-header"><span>&#127916;</span><h2>Film &amp; Serie TV</h2></div>
+  <button class="toggle-form-btn" onclick="toggleForm('films')">+ AGGIUNGI FILM / SERIE</button>
+  <div class="add-form" id="form-films">
+    <input type="text" id="title-films" placeholder="Titolo film o serie..." maxlength="80">
+    <input type="text" id="note-films" placeholder="Piattaforma / note...">
+    <input type="date" id="date-films">
+    <button class="add-btn" onclick="addItem('films')">&#9658; AGGIUNGI</button>
+  </div>
+  <div class="items-list" id="list-films"></div>
+  <div class="empty" id="empty-films"><span class="empty-icon">&#128225;</span>NESSUN FILM<br>IN ORBITA...</div>
+</div>
+
+<div class="panel panel-games" id="panel-games">
+  <div class="panel-header"><span>&#127918;</span><h2>Giochi in Uscita</h2></div>
+  <button class="toggle-form-btn" onclick="toggleForm('games')">+ AGGIUNGI GIOCO</button>
+  <div class="add-form" id="form-games">
+    <input type="text" id="title-games" placeholder="Nome gioco..." maxlength="80">
+    <input type="text" id="note-games" placeholder="Piattaforma / note...">
+    <input type="date" id="date-games">
+    <button class="add-btn" onclick="addItem('games')">&#9658; AGGIUNGI</button>
+  </div>
+  <div class="items-list" id="list-games"></div>
+  <div class="empty" id="empty-games"><span class="empty-icon">&#128126;</span>NESSUN GIOCO<br>NEL RADAR...</div>
+</div>
+
+<div class="panel panel-work" id="panel-work">
+  <div class="panel-header"><span>&#128188;</span><h2>Lavoro</h2></div>
+  <button class="toggle-form-btn" onclick="toggleForm('work')">+ AGGIUNGI ATTIVITA'</button>
+  <div class="add-form" id="form-work">
+    <input type="text" id="title-work" placeholder="Titolo attivita'..." maxlength="80">
+    <textarea id="note-work" rows="2" placeholder="Note (opzionale)..."></textarea>
+    <input type="date" id="date-work">
+    <button class="add-btn" onclick="addItem('work')">&#9658; AGGIUNGI</button>
+  </div>
+  <div class="items-list" id="list-work"></div>
+  <div class="empty" id="empty-work"><span class="empty-icon">&#128752;</span>NESSUNA ATTIVITA'<br>IN PROGRAMMA...</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot,
+  updateDoc, deleteDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7kweQc1B0YolPayfzAIbHad9ketvozb4",
+  authDomain: "spaceremind.firebaseapp.com",
+  projectId: "spaceremind",
+  storageBucket: "spaceremind.firebasestorage.app",
+  messagingSenderId: "547907715781",
+  appId: "1:547907715781:web:a11a663225585cc74ce6ac"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const CATS = ['general','films','games','work'];
+const syncEl = document.getElementById('sync-status');
+
+const starsEl = document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()<.7?1:Math.random()<.8?2:3;
+  s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+Math.random()*100+'%;left:'+Math.random()*100+'%;animation-duration:'+(1.5+Math.random()*3)+'s;animation-delay:'+Math.random()*3+'s';
+  starsEl.appendChild(s);
+}
+
+function switchTab(cat){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab-btn.'+cat).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+cat).classList.add('active');
+}
+window.switchTab = switchTab;
+
+function toggleForm(cat){
+  document.getElementById('form-'+cat).classList.toggle('open');
+}
+window.toggleForm = toggleForm;
+
+function dateClass(d){
+  if(!d)return '';
+  const today=new Date();today.setHours(0,0,0,0);
+  const dd=new Date(d+'T00:00:00');
+  const diff=Math.round((dd-today)/(1000*60*60*24));
+  if(diff===0)return 'today';
+  if(diff>0&&diff<=7)return 'soon';
+  if(diff<0)return 'past';
+  return '';
+}
+
+function formatDate(d){
+  if(!d)return '';
+  const parts=d.split('-');
+  return '&#128197; '+parts[2]+'/'+parts[1]+'/'+parts[0];
+}
+
+function render(cat, items){
+  const list=document.getElementById('list-'+cat);
+  const empty=document.getElementById('empty-'+cat);
+  const badge=document.getElementById('badge-'+cat);
+  const active=items.filter(i=>!i.done).length;
+  badge.textContent=active||'';
+  badge.style.display=active?'flex':'none';
+  if(!items.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=items.map(item=>`
+    <div class="item${item.done?' done':''}" data-id="${item.id}" data-cat="${cat}">
+      <div class="item-title">${item.title}</div>
+      ${item.note?`<div class="item-note">${item.note}</div>`:''}
+      ${item.date?`<div class="item-date ${dateClass(item.date)}">${formatDate(item.date)}</div>`:''}
+      <div class="item-actions">
+        <button class="btn-done" onclick="toggleDone('${cat}','${item.id}',${item.done})" title="Fatto/Non fatto">&#10003;</button>
+        <button class="btn-del" onclick="delItem('${cat}','${item.id}')" title="Elimina">&#10005;</button>
+      </div>
+      <div class="edit-form" id="edit-${item.id}">
+        <input type="text" id="et-${item.id}" value="${(item.title||'').replace(/"/g,'&quot;')}">
+        <textarea id="en-${item.id}">${item.note||''}</textarea>
+        <input type="date" id="ed-${item.id}" value="${item.date||''}">
+        <button class="edit-save" onclick="saveEdit('${cat}','${item.id}')">&#128190; SALVA</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+CATS.forEach(cat => {
+  const colRef = collection(db, cat);
+  onSnapshot(colRef, snap => {
+    syncEl.className='synced';syncEl.textContent='&#10003; SYNC';
+    const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+    render(cat, items);
+  }, err => {
+    syncEl.className='sync-err';syncEl.textContent='&#10005; ERR';
+    console.error(err);
+  });
+});
+
+window.addItem = async function(cat){
+  const t=document.getElementById('title-'+cat).value.trim();
+  if(!t)return;
+  const noteEl=document.getElementById('note-'+cat);
+  const n=noteEl?noteEl.value.trim():'';
+  const d=document.getElementById('date-'+cat).value;
+  syncEl.className='syncing';syncEl.textContent='SYNC...';
+  await addDoc(collection(db, cat),{title:t,note:n,date:d,done:false,createdAt:Date.now()});
+  document.getElementById('title-'+cat).value='';
+  if(noteEl)noteEl.value='';
+  document.getElementById('date-'+cat).value='';
+};
+
+window.toggleDone = async function(cat,id,done){
+  await updateDoc(doc(db,cat,id),{done:!done});
+};
+
+window.delItem = async function(cat,id){
+  if(confirm('Eliminare?')) await deleteDoc(doc(db,cat,id));
+};
+
+window.saveEdit = async function(cat,id){
+  const t=document.getElementById('et-'+id).value.trim();
+  const n=document.getElementById('en-'+id).value;
+  const d=document.getElementById('ed-'+id).value;
+  if(t) await updateDoc(doc(db,cat,id),{title:t,note:n,date:d});
+  document.getElementById('edit-'+id).classList.remove('open');
+};
+
+document.addEventListener('click',e=>{
+  const item=e.target.closest('.item');
+  if(!item||e.target.closest('.item-actions')||e.target.closest('.edit-form'))return;
+  const id=item.dataset.id;
+  document.getElementById('edit-'+id).classList.toggle('open');
+});
+</script>
+</body>
+</html>
